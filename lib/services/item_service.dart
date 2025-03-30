@@ -16,6 +16,7 @@ class ItemService {
     required String description,
     required String sellerId,
     required File imageFile, // Image file picked by the user
+    required String category, // New field for item category
   }) async {
     try {
       // Upload image to Firebase Storage
@@ -33,6 +34,7 @@ class ItemService {
         description: description,
         imageUrl: imageUrl,
         sellerId: sellerId,
+        category: 'Uncategorized', // Default category, can be changed later
         createdAt: Timestamp.now(),
       );
 

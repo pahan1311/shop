@@ -1,9 +1,16 @@
-// lib/presentation/screens/add_item_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '/services/item_service.dart'; // Adjust path
-import 'package:firebase_auth/firebase_auth.dart'; // For current user
+import 'package:firebase_auth/firebase_auth.dart';
+
+// Color Palette
+class AppColors {
+  static const Color backgroundColor = Color(0xFFFFF2F2);
+  static const Color lightBlue = Color(0xFFA9B5DF);
+  static const Color mediumBlue = Color(0xFF7886C7);
+  static const Color darkBlue = Color(0xFF2D336B);
+}
 
 class AddItemScreen extends StatefulWidget {
   const AddItemScreen({super.key});
@@ -18,8 +25,19 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   File? _imageFile;
+  String? _selectedCategory; // For category dropdown
   final ItemService _itemService = ItemService();
   bool _isLoading = false;
+
+  // List of categories (you can expand this)
+  final List<String> _categories = [
+    'Electronics',
+    'Clothing',
+    'Books',
+    'Home & Garden',
+    'Toys',
+    'Other',
+  ];
 
   // Pick image from gallery
   Future<void> _pickImage() async {
@@ -34,7 +52,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   // Submit item to Firestore
   Future<void> _submitItem() async {
-    if (_formKey.currentState!.validate() && _imageFile != null) {
+    if (_formKey.currentState!.validate() && _imageFile != null && _selectedCategory != null) {
       setState(() => _isLoading = true);
       try {
         final user = FirebaseAuth.instance.currentUser;
@@ -46,22 +64,35 @@ class _AddItemScreenState extends State<AddItemScreen> {
           description: _descriptionController.text,
           sellerId: user.uid,
           imageFile: _imageFile!,
+          category: _selectedCategory!, // Pass category
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Item added successfully!')),
+          SnackBar(
+            content: const Text('Item added successfully!'),
+            backgroundColor: AppColors.mediumBlue,
+          ),
         );
         Navigator.pop(context); // Go back after success
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       } finally {
         setState(() => _isLoading = false);
       }
-    } else if (_imageFile == null) {
+    } else {
+      String errorMessage = '';
+      if (_imageFile == null) errorMessage = 'Please upload an image';
+      if (_selectedCategory == null) errorMessage = 'Please select a category';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please upload an image')),
+        SnackBar(
+          content: Text(errorMessage.isEmpty ? 'Please fill all fields' : errorMessage),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
@@ -69,47 +100,156 @@ class _AddItemScreenState extends State<AddItemScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add New Item')),
+      backgroundColor: AppColors.backgroundColor,
+      appBar: AppBar(
+        backgroundColor: AppColors.darkBlue,
+        title: const Text(
+          'Add New Item',
+          style: TextStyle(color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Item Name
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Item Name'),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Enter item name' : null,
+                  decoration: InputDecoration(
+                    labelText: 'Item Name',
+                    labelStyle: TextStyle(color: AppColors.mediumBlue),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.lightBlue),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.darkBlue),
+                    ),
+                  ),
+                  validator: (value) => value!.isEmpty ? 'Enter item name' : null,
                 ),
+                const SizedBox(height: 16),
+
+                // Price
                 TextFormField(
                   controller: _priceController,
-                  decoration: const InputDecoration(labelText: 'Price'),
+                  decoration: InputDecoration(
+                    labelText: 'Price',
+                    labelStyle: TextStyle(color: AppColors.mediumBlue),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.lightBlue),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.darkBlue),
+                    ),
+                  ),
                   keyboardType: TextInputType.number,
-                  validator: (value) =>
-                      value!.isEmpty ? 'Enter price' : null,
+                  validator: (value) => value!.isEmpty ? 'Enter price' : null,
                 ),
+                const SizedBox(height: 16),
+
+                // Description
                 TextFormField(
                   controller: _descriptionController,
-                  decoration: const InputDecoration(labelText: 'Description'),
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    labelStyle: TextStyle(color: AppColors.mediumBlue),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.lightBlue),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.darkBlue),
+                    ),
+                  ),
                   maxLines: 3,
-                  validator: (value) =>
-                      value!.isEmpty ? 'Enter description' : null,
+                  validator: (value) => value!.isEmpty ? 'Enter description' : null,
+                ),
+                const SizedBox(height: 16),
+
+                // Category Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  hint: const Text('Select Category'),
+                  items: _categories.map((category) {
+                    return DropdownMenuItem<String>(
+                      value: category,
+                      child: Text(category),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    labelStyle: TextStyle(color: AppColors.mediumBlue),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.lightBlue),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.darkBlue),
+                    ),
+                  ),
+                  validator: (value) => value == null ? 'Select a category' : null,
                 ),
                 const SizedBox(height: 20),
+
+                // Image Picker
                 _imageFile == null
-                    ? ElevatedButton(
+                    ? ElevatedButton.icon(
                         onPressed: _pickImage,
-                        child: const Text('Upload Image'),
+                        icon: const Icon(Icons.upload),
+                        label: const Text('Upload Image'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.mediumBlue,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                        ),
                       )
-                    : Image.file(_imageFile!, height: 150),
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(_imageFile!, height: 150, fit: BoxFit.cover),
+                      ),
                 const SizedBox(height: 20),
+
+                // Submit Button
                 _isLoading
-                    ? const CircularProgressIndicator()
+                    ? const Center(child: CircularProgressIndicator(color: AppColors.darkBlue))
                     : ElevatedButton(
                         onPressed: _submitItem,
-                        child: const Text('Add Item'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.darkBlue,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Add Item', style: TextStyle(fontSize: 16)),
                       ),
               ],
             ),

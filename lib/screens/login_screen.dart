@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shopngo/services/auth_service.dart';
 
+// Color Palette
+class AppColors {
+  static const Color backgroundColor = Color(0xFFFFF2F2);
+  static const Color lightBlue = Color(0xFFA9B5DF);
+  static const Color mediumBlue = Color(0xFF7886C7);
+  static const Color darkBlue = Color(0xFF2D336B);
+}
+
 class LoginScreen extends StatefulWidget {
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -17,60 +25,138 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Login')),
+      backgroundColor: AppColors.backgroundColor,
+      appBar: AppBar(
+        backgroundColor: AppColors.darkBlue,
+        title: const Text(
+          'Login',
+          style: TextStyle(color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Email'),
-                validator: (val) => val!.isEmpty ? 'Enter an email' : null,
-                onChanged: (val) => setState(() => email = val),
-              ),
-              SizedBox(height: 20),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: (val) => val!.length < 6 ? 'Enter a password 6+ chars long' : null,
-                onChanged: (val) => setState(() => password = val),
-              ),
-              SizedBox(height: 20),
-              isLoading
-                  ? CircularProgressIndicator()
-                  : ElevatedButton(
-                      child: Text('Login'),
-                      onPressed: () async {
-                        if (_formKey.currentState!.validate()) {
-                          setState(() => isLoading = true);
-                          dynamic result = await _auth.login(
-                            email: email,
-                            password: password,
-                          );
-                          if (result == null) {
-                            setState(() {
-                              error = 'Could not sign in with those credentials';
-                              isLoading = false;
-                            });
-                          } else {
-                            // Navigate based on role
-                            if (result.role == 'seller') {
-                              Navigator.pushReplacementNamed(context, '/sellerhome');
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                Text(
+                  'Welcome Back!',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.darkBlue,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Sign in to continue shopping',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppColors.mediumBlue,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                // Email Field
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    labelStyle: TextStyle(color: AppColors.mediumBlue),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.lightBlue),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.darkBlue),
+                    ),
+                  ),
+                  validator: (val) => val!.isEmpty ? 'Enter an email' : null,
+                  onChanged: (val) => setState(() => email = val),
+                ),
+                const SizedBox(height: 20),
+                // Password Field
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    labelStyle: TextStyle(color: AppColors.mediumBlue),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.lightBlue),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.darkBlue),
+                    ),
+                  ),
+                  obscureText: true,
+                  validator: (val) => val!.length < 6 ? 'Enter a password 6+ chars long' : null,
+                  onChanged: (val) => setState(() => password = val),
+                ),
+                const SizedBox(height: 30),
+                // Login Button
+                isLoading
+                    ? const Center(child: CircularProgressIndicator(color: AppColors.darkBlue))
+                    : ElevatedButton(
+                        onPressed: () async {
+                          if (_formKey.currentState!.validate()) {
+                            setState(() => isLoading = true);
+                            dynamic result = await _auth.login(
+                              email: email,
+                              password: password,
+                            );
+                            if (result == null) {
+                              setState(() {
+                                error = 'Could not sign in with those credentials';
+                                isLoading = false;
+                              });
                             } else {
-                              Navigator.pushReplacementNamed(context, '/home');
+                              if (result.role == 'seller') {
+                                Navigator.pushReplacementNamed(context, '/sellerhome');
+                              } else {
+                                Navigator.pushReplacementNamed(context, '/home');
+                              }
                             }
                           }
-                        }
-                      },
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.darkBlue,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Login', style: TextStyle(fontSize: 16)),
+                      ),
+                const SizedBox(height: 12),
+                // Error Message
+                if (error.isNotEmpty)
+                  Text(
+                    error,
+                    style: const TextStyle(color: Colors.redAccent),
+                    textAlign: TextAlign.center,
+                  ),
+                const SizedBox(height: 20),
+                // Sign Up Link
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.pushNamed(context, '/signup'),
+                    child: Text(
+                      'Need an account? Sign up',
+                      style: TextStyle(color: AppColors.mediumBlue),
                     ),
-              SizedBox(height: 12),
-              Text(error, style: TextStyle(color: Colors.red)),
-              TextButton(
-                child: Text('Need an account? Sign up'),
-                onPressed: () => Navigator.pushNamed(context, '/signup'),
-              ),
-            ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
