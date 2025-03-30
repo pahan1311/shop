@@ -1,73 +1,59 @@
-// lib/services/firebase_service.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class FirebaseService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  String get userId {
+  // Get cart items stream for the current user
+  Stream<List<Map<String, dynamic>>> getCartStream() {
     final user = _auth.currentUser;
     if (user == null) {
-      throw Exception('User not logged in');
+      return const Stream.empty();
     }
-    return user.uid;
+    return _firestore
+        .collection('cart')
+        .where('userId', isEqualTo: user.uid)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList());
   }
 
-  // Wishlist Functions
-
-  Future<void> addToWishlist(String productId) async {
-    await _firestore
-        .collection('wishlists')
-        .doc('${userId}_$productId')
-        .set({'userId': userId, 'productId': productId});
+  // Update cart item quantity
+  Future<void> updateCartItemQuantity(String itemId, int newQuantity) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    final docId = '${user.uid}_$itemId';
+    await _firestore.collection('cart').doc(docId).update({'quantity': newQuantity});
   }
 
-  Future<void> removeFromWishlist(String productId) async {
-    await _firestore
-        .collection('wishlists')
-        .doc('${userId}_$productId')
-        .delete();
+  // Remove item from cart
+  Future<void> removeFromCart(String itemId) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    final docId = '${user.uid}_$itemId';
+    await _firestore.collection('cart').doc(docId).delete();
   }
 
+  // Get wishlist items stream for the current user
   Stream<List<Map<String, dynamic>>> getWishlistStream() {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return const Stream.empty(); // Return empty stream if not logged in
+    }
+
     return _firestore
-        .collection('wishlists')
-        .where('userId', isEqualTo: userId)
+        .collection('wishlist')
+        .where('userId', isEqualTo: user.uid)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => doc.data() as Map<String, dynamic>)
-            .toList());
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList());
   }
 
-  // Cart Functions
+  // Remove item from wishlist
+  Future<void> removeFromWishlist(String itemId) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
 
-  Future<void> addToCart(String productId, int quantity) async {
-    await _firestore.collection('carts').doc('${userId}_$productId').set({
-      'userId': userId,
-      'productId': productId,
-      'quantity': quantity,
-    });
-  }
-
-  Future<void> updateCartItemQuantity(String productId, int quantity) async {
-    await _firestore.collection('carts').doc('${userId}_$productId').update({
-      'quantity': quantity,
-    });
-  }
-
-  Future<void> removeFromCart(String productId) async {
-    await _firestore.collection('carts').doc('${userId}_$productId').delete();
-  }
-
-  Stream<List<Map<String, dynamic>>> getCartStream() {
-    return _firestore
-        .collection('carts')
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => doc.data() as Map<String, dynamic>)
-            .toList());
+    final docId = '${user.uid}_$itemId';
+    await _firestore.collection('wishlist').doc(docId).delete();
   }
 }

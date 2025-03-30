@@ -31,7 +31,7 @@ class ItemModel {
       description: data['description'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
       sellerId: data['sellerId'] ?? '',
-      category: data['category'] ?? 'Uncategorized', // Default value if missing
+      category: data['category'] ?? '', // Default value if missing
       createdAt: data['createdAt'] ?? Timestamp.now(),
     );
   }

@@ -1,6 +1,7 @@
 // lib/presentation/screens/seller_home_page.dart
 import 'package:flutter/material.dart';
 import '/screens/seller/add_item_screen.dart'; // Adjust path
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SellerHomePage extends StatelessWidget {
   const SellerHomePage({super.key});
@@ -20,6 +21,15 @@ class SellerHomePage extends StatelessWidget {
         backgroundColor: darkAccent,
         foregroundColor: Colors.white, // Text/icon color
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -65,7 +75,7 @@ class SellerHomePage extends StatelessWidget {
               icon: Icons.list,
               color: mediumAccent,
               onTap: () {
-                Navigator.pushNamed(context, '/seller-items'); // Placeholder route
+                Navigator.pushNamed(context, '/selleritems'); // Placeholder route
               },
             ),
             const SizedBox(height: 20),

@@ -32,9 +32,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
   // List of categories (you can expand this)
   final List<String> _categories = [
     'Electronics',
+    'Home',
+    'Beauty',
+    'Sports',
     'Clothing',
     'Books',
-    'Home & Garden',
     'Toys',
     'Other',
   ];

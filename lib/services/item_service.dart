@@ -34,7 +34,7 @@ class ItemService {
         description: description,
         imageUrl: imageUrl,
         sellerId: sellerId,
-        category: 'Uncategorized', // Default category, can be changed later
+        category: category, 
         createdAt: Timestamp.now(),
       );
 

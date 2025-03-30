@@ -1,7 +1,6 @@
-// lib/screens/categories_screen.dart
-
-import 'package:shopngo/utils/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:shopngo/screens/category_items_screen.dart';
+import 'package:shopngo/utils/constants.dart';
 import '../widgets/bottom_navigation_bar.dart';
 
 class CategoriesScreen extends StatelessWidget {
@@ -10,7 +9,7 @@ class CategoriesScreen extends StatelessWidget {
   void _navigateToPage(BuildContext context, int index) {
     String routeName = '';
 
-     if (index == 0) {
+    if (index == 0) {
       routeName = '/home';
     } else if (index == 1) {
       routeName = '/category';
@@ -18,8 +17,7 @@ class CategoriesScreen extends StatelessWidget {
       routeName = '/wishlist';
     } else if (index == 3) {
       routeName = '/cart';
-    } 
-
+    }
 
     if (ModalRoute.of(context)?.settings.name != routeName) {
       Navigator.pushReplacementNamed(context, routeName);
@@ -30,54 +28,41 @@ class CategoriesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // List of categories with names and icons
     final List<Map<String, dynamic>> categories = [
-      {
-        'name': 'Electronics',
-        'icon': Icons.devices_other,
-      },
-      {
-        'name': 'Fashion',
-        'icon': Icons.checkroom,
-      },
-      {
-        'name': 'Home',
-        'icon': Icons.home,
-      },
-      {
-        'name': 'Beauty',
-        'icon': Icons.spa,
-      },
-      {
-        'name': 'Sports',
-        'icon': Icons.sports_esports,
-      },
-      {
-        'name': 'Toys',
-        'icon': Icons.toys,
-      },
+      {'name': 'Electronics', 'icon': Icons.devices_other},
+      {'name': 'Home', 'icon': Icons.home},
+      {'name': 'Beauty', 'icon': Icons.spa},
+      {'name': 'Sports', 'icon': Icons.sports_esports},
+      {'name': 'Clothing', 'icon': Icons.checkroom},
+      {'name': 'Books', 'icon': Icons.book},
+      {'name': 'Toys', 'icon': Icons.toys},
+      {'name': 'Others', 'icon': Icons.category},
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Categories'),
-        backgroundColor: kPrimaryColor,
+        title: const Text('Categories', style: TextStyle(color: Colors.white)),
+        backgroundColor: AppColors.darkBlue, // Updated to use AppColors
       ),
-      backgroundColor: kBackgroundColor,
+      backgroundColor: AppColors.backgroundColor, // Updated to use AppColors
       body: GridView.builder(
         padding: const EdgeInsets.all(16.0),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, // 2 categories per row
+          crossAxisCount: 2,
           crossAxisSpacing: 16.0,
           mainAxisSpacing: 16.0,
-          childAspectRatio: 1.0, // Adjust as needed
+          childAspectRatio: 1.0,
         ),
         itemCount: categories.length,
         itemBuilder: (context, index) {
           final category = categories[index];
           return InkWell(
             onTap: () {
-              // Navigate to the category details page
-              print('Category tapped: ${category['name']}');
-              // You'll implement the navigation later
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CategoryItemsScreen(category: category['name']),
+                ),
+              );
             },
             child: Container(
               decoration: BoxDecoration(
@@ -98,7 +83,7 @@ class CategoriesScreen extends StatelessWidget {
                   Icon(
                     category['icon'],
                     size: 50.0,
-                    color: kAccentColor,
+                    color: AppColors.mediumBlue, // Updated to use AppColors
                   ),
                   const SizedBox(height: 10.0),
                   Text(
@@ -106,7 +91,7 @@ class CategoriesScreen extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 18.0,
                       fontWeight: FontWeight.bold,
-                      color: kPrimaryColor,
+                      color: AppColors.darkBlue, // Updated to use AppColors
                     ),
                   ),
                 ],
