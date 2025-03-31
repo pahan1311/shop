@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shopngo/screens/category_items_screen.dart';
+import 'package:shopngo/screens/buyer/category_items_screen.dart';
 import 'package:shopngo/utils/constants.dart';
-import '../widgets/bottom_navigation_bar.dart';
+import '../../widgets/bottom_navigation_bar.dart';
 
 class CategoriesScreen extends StatelessWidget {
   const CategoriesScreen({super.key});
@@ -40,8 +40,16 @@ class CategoriesScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+           shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(25),
+            bottomRight: Radius.circular(25),
+          ),
+        ),
         title: const Text('Categories', style: TextStyle(color: Colors.white)),
-        backgroundColor: AppColors.darkBlue, // Updated to use AppColors
+        backgroundColor: AppColors.darkBlue,
+                iconTheme: const IconThemeData(color: Colors.white),
+ // Updated to use AppColors
       ),
       backgroundColor: AppColors.backgroundColor, // Updated to use AppColors
       body: GridView.builder(

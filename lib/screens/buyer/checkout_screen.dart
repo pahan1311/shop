@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 import 'package:shopngo/models/item_model.dart';
+import 'package:shopngo/models/order_model.dart';
 
 class AppColors {
   static const Color backgroundColor = Color(0xFFFFF2F2);
@@ -20,58 +23,94 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  int _quantity = 1; // Initial quantity
+  int _quantity = 1;
+  bool isLoading = false;
 
-  Future<void> _placeOrder(BuildContext context) async {
+  Future<void> makePayment(BuildContext context) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to proceed with payment'), backgroundColor: Colors.redAccent),
+      );
+      Navigator.pushNamed(context, '/login');
+      return;
+    }
 
     try {
-      final total = widget.item.price * _quantity; // Calculate total based on quantity
-      await FirebaseFirestore.instance.collection('orders').add({
-        'userId': user.uid,
-        'itemId': widget.item.id,
-        'name': widget.item.name,
-        'price': widget.item.price,
-        'imageUrl': widget.item.imageUrl,
-        'quantity': _quantity,
-        'total': total,
-        'status': 'pending',
-        'createdAt': Timestamp.now(),
-      });
+      setState(() => isLoading = true);
+      print('Item price: ${widget.item.price}');
+      print('Quantity: $_quantity');
+      final total = widget.item.price * _quantity;
+      print('Total before conversion: $total');
+      final amount = (total * 100).toInt();
+      print('Amount sent to function: $amount');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Order placed successfully for ${widget.item.name}'),
-          backgroundColor: AppColors.mediumBlue,
+      if (amount <= 0) {
+        print('Invalid amount detected');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Total amount must be greater than 0'), backgroundColor: Colors.redAccent),
+        );
+        return;
+      }
+
+      final callable = FirebaseFunctions.instanceFor(region: 'us-central1').httpsCallable('createPaymentIntent');
+      final response = await callable.call(<String, dynamic>{
+        'amount': amount,
+        'currency': 'usd',
+      });
+      final clientSecret = response.data['clientSecret'];
+      print('Client Secret: $clientSecret');
+
+      await stripe.Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: stripe.SetupPaymentSheetParameters(
+          paymentIntentClientSecret: clientSecret,
+          merchantDisplayName: 'ShopNGO',
+          style: ThemeMode.light,
         ),
       );
+      await stripe.Stripe.instance.presentPaymentSheet();
 
+      final order = OrderModel(
+        id: '',
+        userId: user.uid,
+        itemId: widget.item.id,
+        name: widget.item.name,
+        price: widget.item.price,
+        imageUrl: widget.item.imageUrl,
+        quantity: _quantity,
+        total: total,
+        status: 'paid',
+        createdAt: Timestamp.now(),
+      );
+      await FirebaseFirestore.instance.collection('orders').add(order.toMap());
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment successful!'), backgroundColor: AppColors.mediumBlue),
+      );
       Navigator.popUntil(context, (route) => route.isFirst);
     } catch (e) {
+      print('Payment Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error placing order: $e'), backgroundColor: Colors.redAccent),
+        SnackBar(content: Text('Payment failed: $e'), backgroundColor: Colors.redAccent),
       );
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
   void _incrementQuantity() {
-    setState(() {
-      _quantity++;
-    });
+    setState(() => _quantity++);
   }
 
   void _decrementQuantity() {
     if (_quantity > 1) {
-      setState(() {
-        _quantity--;
-      });
+      setState(() => _quantity--);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final subtotal = widget.item.price * _quantity; // Dynamic subtotal
+    final subtotal = widget.item.price * _quantity;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
@@ -85,7 +124,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Item Summary
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -151,8 +189,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Order Summary
             Text(
               'Order Summary',
               style: TextStyle(
@@ -186,7 +222,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  '\$${subtotal.toStringAsFixed(2)}', // Total matches subtotal since shipping is free
+                  '\$${subtotal.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -196,19 +232,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ],
             ),
             const SizedBox(height: 30),
-
-            // Place Order Button
             Center(
-              child: ElevatedButton(
-                onPressed: () => _placeOrder(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.darkBlue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                ),
-                child: const Text('Place Order', style: TextStyle(fontSize: 18)),
-              ),
+              child: isLoading
+                  ? const CircularProgressIndicator(color: AppColors.darkBlue)
+                  : ElevatedButton(
+                      onPressed: () => makePayment(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.darkBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                      ),
+                      child: const Text('Buy Now', style: TextStyle(fontSize: 18)),
+                    ),
             ),
           ],
         ),

@@ -3,14 +3,16 @@ import '/screens/login_screen.dart';
 import '/screens/signup_screen.dart';
 import '../screens/buyer/home_screen.dart';
 import '../screens/buyer/profile_screen.dart';
-import '/screens/categories_screen.dart';
+import '../screens/buyer/categories_screen.dart';
 import '/screens/seller/add_item_screen.dart';
 import '/screens/seller/home_screen.dart';
 import '/screens/seller/seller_items_screen.dart';
 import '/screens/buyer/item_detail_screen.dart';
-import '/screens/category_items_screen.dart';
-import '/screens/wishlist_screen.dart';
-import '/screens/cart_screen.dart';
+import '../screens/buyer/category_items_screen.dart';
+import '../screens/buyer/wishlist_screen.dart';
+import '../screens/buyer/cart_screen.dart';
+import '/screens/seller/add_item_screen.dart';
+import '/screens/seller/manage_order_screen.dart';
 
 
 
@@ -27,6 +29,10 @@ class AppRoutes {
   static const String selleritems = '/selleritems';
   static const String itemDetail = '/itemDetail';
   static const String categoryItems = '/categoryItems';
+  static const String additem = '/addItem';
+  static const String manageOrder = '/manageOrder';
+
+  
  
 
   static Map<String, WidgetBuilder> routes = {
@@ -41,6 +47,8 @@ class AppRoutes {
     selleradditem: (context) => AddItemScreen(),
     selleritems: (context) => SellerItemsScreen(),
     categoryItems: (context) => CategoryItemsScreen(category: ''),
+    additem: (context) => AddItemScreen(),
+    manageOrder: (context) => SellerOrdersScreen(),
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {

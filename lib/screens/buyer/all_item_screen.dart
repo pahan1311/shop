@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '/services/item_service.dart'; // Adjust path
 import '/models/item_model.dart'; // Adjust path
+import '/screens/buyer/item_detail_screen.dart'; // Add this import
 
 class AllItemsScreen extends StatefulWidget {
   const AllItemsScreen({super.key});
@@ -62,6 +63,12 @@ class _AllItemsScreenState extends State<AllItemsScreen> {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(25),
+            bottomRight: Radius.circular(25),
+          ),
+        ),
         title: const Text('All Products'),
         backgroundColor: darkAccent,
         foregroundColor: Colors.white,
@@ -88,7 +95,6 @@ class _AllItemsScreenState extends State<AllItemsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
             // Items Grid
             Expanded(
               child: _isLoading
@@ -101,8 +107,7 @@ class _AllItemsScreenState extends State<AllItemsScreen> {
                           ),
                         )
                       : GridView.builder(
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
                             crossAxisSpacing: 10,
                             mainAxisSpacing: 10,
@@ -111,7 +116,7 @@ class _AllItemsScreenState extends State<AllItemsScreen> {
                           itemCount: _filteredItems.length,
                           itemBuilder: (context, index) {
                             final item = _filteredItems[index];
-                            return _buildProductCard(item);
+                            return _buildProductCard(context, item);
                           },
                         ),
             ),
@@ -121,83 +126,93 @@ class _AllItemsScreenState extends State<AllItemsScreen> {
     );
   }
 
-  // Product card design inspired by HomeScreen with color palette
-  Widget _buildProductCard(ItemModel item) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
+  // Product card design with navigation to ItemDetailScreen
+  Widget _buildProductCard(BuildContext context, ItemModel item) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItemDetailScreen(item: item),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Product Image
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: lightAccent.withOpacity(0.3), // Light accent for image background
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(8),
-                  topRight: Radius.circular(8),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Product Image
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: lightAccent.withOpacity(0.3),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8),
+                    topRight: Radius.circular(8),
+                  ),
                 ),
-              ),
-              child: item.imageUrl.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(8),
-                        topRight: Radius.circular(8),
-                      ),
-                      child: Image.network(
-                        item.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Icon(
-                          Icons.broken_image,
-                          size: 40,
-                          color: Colors.grey,
+                child: item.imageUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                          topRight: Radius.circular(8),
                         ),
+                        child: Image.network(
+                          item.imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Icon(
+                            Icons.broken_image,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : const Center(
+                        child: Icon(Icons.image, size: 40, color: Colors.grey),
                       ),
-                    )
-                  : const Center(
-                      child: Icon(Icons.image, size: 40, color: Colors.grey),
+              ),
+            ),
+            // Product Details
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: darkAccent,
                     ),
-            ),
-          ),
-          // Product Details
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: darkAccent,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '\$${item.price.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    color: mediumAccent,
-                    fontWeight: FontWeight.bold,
+                  const SizedBox(height: 4),
+                  Text(
+                    '\$${item.price.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      color: mediumAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

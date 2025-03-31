@@ -1,7 +1,10 @@
+// lib/screens/seller/seller_items_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shopngo/models/item_model.dart';
+import '/screens/seller/add_item_screen.dart'; // Adjust path if needed
+import '/screens/seller/edit_item_screen.dart'; // Add this import
 
 // Color Palette
 class AppColors {
@@ -19,7 +22,6 @@ class SellerItemsScreen extends StatelessWidget {
     final User? user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      // Redirect to login if not authenticated
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacementNamed(context, '/login');
       });
@@ -31,12 +33,19 @@ class SellerItemsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(25),
+            bottomRight: Radius.circular(25),
+          ),
+        ),
         backgroundColor: AppColors.darkBlue,
         title: const Text(
           'My Items',
           style: TextStyle(color: Colors.white),
         ),
-        
+                iconTheme: const IconThemeData(color: Colors.white),
+
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -75,7 +84,7 @@ class SellerItemsScreen extends StatelessWidget {
                 color: Colors.white,
                 elevation: 2,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                margin: const EdgeInsets.only(bottom: 8.0),
+                margin: const EdgeInsets.only(bottom: 8.0), // 'bottom' instead of 'custom'
                 child: ListTile(
                   leading: item.imageUrl.isNotEmpty
                       ? ClipRRect(
@@ -107,9 +116,18 @@ class SellerItemsScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.redAccent),
-                    onPressed: () => _deleteItem(context, item.id),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: AppColors.mediumBlue),
+                        onPressed: () => _editItem(context, item),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                        onPressed: () => _deleteItem(context, item.id),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -119,7 +137,7 @@ class SellerItemsScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.darkBlue,
-        onPressed: () => Navigator.pushNamed(context, '/add_item'),
+        onPressed: () => Navigator.pushNamed(context, '/addItem'),
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -143,4 +161,13 @@ class SellerItemsScreen extends StatelessWidget {
       );
     }
   }
+
+  void _editItem(BuildContext context, ItemModel item) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => EditItemScreen(item: item),
+    ),
+  );
+}
 }

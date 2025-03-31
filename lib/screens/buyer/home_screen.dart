@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:carousel_slider/carousel_slider.dart'; // Add this import
 import 'package:shopngo/models/item_model.dart';
 import 'package:shopngo/screens/buyer/profile_screen.dart';
-import 'package:shopngo/screens/category_items_screen.dart';
+import 'package:shopngo/screens/buyer/category_items_screen.dart';
 import 'package:shopngo/screens/buyer/item_detail_screen.dart';
 import 'package:shopngo/utils/constants.dart';
 import '../../widgets/bottom_navigation_bar.dart';
-import '../all_item_screen.dart';
+import 'all_item_screen.dart';
 
 class AppColors {
   static const Color backgroundColor = Color(0xFFFFF2F2);
@@ -27,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
 
-  // Predefined categories
   final List<Map<String, dynamic>> _categories = [
     {'name': 'Electronics', 'icon': Icons.devices},
     {'name': 'Home', 'icon': Icons.home},
@@ -39,48 +39,86 @@ class _HomeScreenState extends State<HomeScreen> {
     {'name': 'Others', 'icon': Icons.category},
   ];
 
-  // Helper method to build category items
-  Widget _buildCategoryItem(IconData icon, String title) {
-  return GestureDetector(
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CategoryItemsScreen(category: title),
-        ),
+  @override
+  void initState() {
+    super.initState();
+    _initializeBanners(); // Initialize banners on first load
+  }
+
+  Future<void> _initializeBanners() async {
+    try {
+      final bannersCollection = FirebaseFirestore.instance.collection('banners');
+      final existingBanners = await bannersCollection.get();
+      if (existingBanners.docs.isNotEmpty) return;
+
+      await bannersCollection.add({
+        'imageUrl': 'https://picsum.photos/800/300',
+        'order': 1,
+        'title': 'Welcome to ShopNgo',
+      });
+      await bannersCollection.add({
+        'imageUrl': 'https://picsum.photos/800/301',
+        'order': 2,
+        'title': '50% Off Sale',
+      });
+      await bannersCollection.add({
+        'imageUrl': 'https://picsum.photos/800/302',
+        'order': 3,
+        'title': 'New Arrivals',
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Banners initialized successfully')),
       );
-    },
-    child: Container(
-      width: 80,
-      margin: const EdgeInsets.only(right: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 2),
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error initializing banners: $e')),
+      );
+    }
+  }
+
+  Widget _buildCategoryItem(IconData icon, String title) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CategoryItemsScreen(category: title),
           ),
-        ],
+        );
+      },
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.only(right: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.mediumBlue),
+            const SizedBox(height: 5),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 12),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: AppColors.mediumBlue),
-          const SizedBox(height: 5),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 12),
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    ),
-  );
-}
+    );
+  }
+
   void _navigateToPage(BuildContext context, int index) {
     String routeName = '';
     if (index == 0) {
@@ -97,7 +135,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Search function
   void _performSearch(String query) async {
     if (query.isEmpty) {
       setState(() {
@@ -109,18 +146,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() => _isSearching = true);
 
-    // Search categories
     final categoryResults = _categories
         .where((cat) => cat['name'].toLowerCase().contains(query.toLowerCase()))
         .map((cat) => {'type': 'category', 'name': cat['name']})
         .toList();
 
-    // Search items
     final itemSnapshot = await FirebaseFirestore.instance
         .collection('items')
         .where('name', isGreaterThanOrEqualTo: query)
         .where('name', isLessThanOrEqualTo: '$query\uf8ff')
-        .limit(5) // Limit to avoid too many results
+        .limit(5)
         .get();
 
     final itemResults = itemSnapshot.docs
@@ -175,7 +210,6 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                // Search Bar
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: TextField(
@@ -195,47 +229,158 @@ class _HomeScreenState extends State<HomeScreen> {
                     onChanged: (value) => _performSearch(value),
                   ),
                 ),
-
-                // Banner/Featured Section
                 Container(
                   height: 150,
                   width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppColors.lightBlue,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'Featured Banner',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance.collection('banners').orderBy('order').snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator(color: AppColors.mediumBlue));
+                      }
+                      if (snapshot.hasError) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.lightBlue,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Error loading banners',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        );
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.lightBlue,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'No banners available',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        );
+                      }
+
+                      final banners = snapshot.data!.docs
+                          .map((doc) => doc.data() as Map<String, dynamic>)
+                          .toList();
+
+                      return CarouselSlider(
+                        options: CarouselOptions(
+                          height: 150,
+                          autoPlay: true,
+                          autoPlayInterval: const Duration(seconds: 3),
+                          enlargeCenterPage: true,
+                          viewportFraction: 1.0,
+                          aspectRatio: 16 / 9,
+                        ),
+                        items: banners.map((banner) {
+                          final imageUrl = banner['imageUrl'] as String? ?? '';
+                          final title = banner['title'] as String? ?? '';
+
+                          return Builder(
+                            builder: (BuildContext context) {
+                              return Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.2),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      imageUrl.isNotEmpty
+                                          ? Image.network(
+                                              imageUrl,
+                                              fit: BoxFit.cover,
+                                              loadingBuilder: (context, child, loadingProgress) {
+                                                if (loadingProgress == null) return child;
+                                                return Center(
+                                                  child: CircularProgressIndicator(
+                                                    value: loadingProgress.expectedTotalBytes != null
+                                                        ? loadingProgress.cumulativeBytesLoaded /
+                                                            (loadingProgress.expectedTotalBytes ?? 1)
+                                                        : null,
+                                                    color: AppColors.mediumBlue,
+                                                  ),
+                                                );
+                                              },
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Container(
+                                                  color: AppColors.lightBlue,
+                                                  child: const Center(
+                                                    child: Text(
+                                                      'Banner Image Failed',
+                                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            )
+                                          : Container(
+                                              color: AppColors.lightBlue,
+                                              child: const Center(
+                                                child: Text(
+                                                  'No Image',
+                                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                                ),
+                                              ),
+                                            ),
+                                      Positioned(
+                                        bottom: 10,
+                                        left: 10,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          color: Colors.black.withOpacity(0.5),
+                                          child: Text(
+                                            title,
+                                            style: const TextStyle(color: Colors.white, fontSize: 16),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        }).toList(),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // Category Section
                 Text(
-  'Categories',
-  style: TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.bold,
-    color: AppColors.darkBlue,
-  ),
-),
-const SizedBox(height: 10),
-SizedBox(
-  height: 80,
-  child: ListView(
-    scrollDirection: Axis.horizontal,
-    children: _categories.map((cat) => _buildCategoryItem(cat['icon'], cat['name'])).toList(),
-  ),
-),
+                  'Categories',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.darkBlue,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 80,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: _categories.map((cat) => _buildCategoryItem(cat['icon'], cat['name'])).toList(),
+                  ),
+                ),
                 const SizedBox(height: 20),
-
-                // Product Section
                 Container(
                   alignment: Alignment.centerLeft,
                   margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
@@ -372,7 +517,7 @@ SizedBox(
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '\$${item.price.toStringAsFixed(2)}',
+                                        '\Rs.${item.price.toStringAsFixed(2)}',
                                         style: TextStyle(
                                           color: Colors.green[700],
                                           fontWeight: FontWeight.bold,
@@ -392,11 +537,9 @@ SizedBox(
               ],
             ),
           ),
-
-          // Search Results Overlay
           if (_isSearching && _searchResults.isNotEmpty)
             Positioned(
-              top: 70, // Adjust based on your app bar and search bar height
+              top: 70,
               left: 16,
               right: 16,
               child: Material(

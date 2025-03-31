@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '/services/item_service.dart'; // Adjust path
 import 'package:firebase_auth/firebase_auth.dart';
+import '/models/item_model.dart';
 
 // Color Palette
 class AppColors {
@@ -13,7 +14,8 @@ class AppColors {
 }
 
 class AddItemScreen extends StatefulWidget {
-  const AddItemScreen({super.key});
+  final ItemModel? item;
+  const AddItemScreen({super.key, this.item});
 
   @override
   _AddItemScreenState createState() => _AddItemScreenState();
@@ -104,6 +106,12 @@ class _AddItemScreenState extends State<AddItemScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
+         shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(25),
+            bottomRight: Radius.circular(25),
+          ),
+        ),
         backgroundColor: AppColors.darkBlue,
         title: const Text(
           'Add New Item',

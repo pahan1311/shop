@@ -38,6 +38,12 @@ class WishlistScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
+          shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(25),
+            bottomRight: Radius.circular(25),
+          ),
+        ),
         backgroundColor: AppColors.darkBlue,
         title: const Text('Wishlist', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -102,7 +108,7 @@ class WishlistScreen extends StatelessWidget {
                     ),
                   ),
                   subtitle: Text(
-                    '\$${item['price']?.toStringAsFixed(2) ?? '0.00'}',
+                    '\Rs.${item['price']?.toStringAsFixed(2) ?? '0.00'}',
                     style: TextStyle(color: Colors.green[700]),
                   ),
                   trailing: IconButton(

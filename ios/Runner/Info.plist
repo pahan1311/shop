@@ -45,5 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Added for Stripe -->
+	<key>MinimumOSVersion</key>
+	<string>13.0</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Allow Shopngo to access your camera to scan payment cards.</string>
 </dict>
 </plist>
