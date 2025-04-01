@@ -349,6 +349,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.mediumBlue,
                       foregroundColor: Colors.white,
+                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
@@ -434,9 +435,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   ),
                   const SizedBox(height: 24),
                   // Action Buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
                       ElevatedButton.icon(
                         onPressed: () => _addToCart(context),
                         icon: const Icon(Icons.shopping_cart, size: 20),
@@ -444,11 +442,13 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.darkBlue,
                           foregroundColor: Colors.white,
+                           minimumSize: const Size(double.infinity, 50),
                           elevation: 2,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         ),
                       ),
+                      const SizedBox(height: 10),
                       ElevatedButton.icon(
                         onPressed: () => _addToWishlist(context),
                         icon: const Icon(Icons.favorite, size: 20),
@@ -456,13 +456,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.mediumBlue,
                           foregroundColor: Colors.white,
+                           minimumSize: const Size(double.infinity, 50),
                           elevation: 2,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         ),
                       ),
-                    ],
-                  ),
+                    
+                  
                   const SizedBox(height: 80), // Extra space for FAB
                 ],
               ),

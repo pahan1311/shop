@@ -84,10 +84,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       await FirebaseFirestore.instance.collection('orders').add(order.toMap());
 
+      // Show success message and reset quantity
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Payment successful!'), backgroundColor: AppColors.mediumBlue),
       );
-      Navigator.popUntil(context, (route) => route.isFirst);
+      
+      // Reset the quantity to 1 instead of navigating away
+      setState(() {
+        _quantity = 1;
+      });
     } catch (e) {
       print('Payment Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -240,6 +245,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.darkBlue,
                         foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 50),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                       ),
