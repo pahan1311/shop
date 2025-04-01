@@ -3,13 +3,15 @@ class UserModel {
   final String email;
   final String role;
   final String name;
-  final String? photoUrl; // Add this if you want to use it
+  final String address; // New address field
+  final String? photoUrl;
 
   UserModel({
     required this.uid,
     required this.email,
     required this.role,
     required this.name,
+    required this.address, // Make it required
     this.photoUrl,
   });
 
@@ -19,6 +21,7 @@ class UserModel {
       'email': email,
       'role': role,
       'name': name,
+      'address': address, // Add to map
       'photoUrl': photoUrl,
     };
   }
@@ -29,6 +32,7 @@ class UserModel {
       email: map['email'],
       role: map['role'],
       name: map['name'],
+      address: map['address'] ?? '', // Default to empty string if missing
       photoUrl: map['photoUrl'],
     );
   }

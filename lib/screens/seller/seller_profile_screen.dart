@@ -1,10 +1,11 @@
-// lib/screens/seller/seller_profile_screen.dart
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shopngo/services/auth_service.dart';
+import 'package:shopngo/models/user_model.dart';
 
 class AppColors {
   static const Color backgroundColor = Color(0xFFFFF2F2);
@@ -21,88 +22,157 @@ class SellerProfileScreen extends StatefulWidget {
 }
 
 class _SellerProfileScreenState extends State<SellerProfileScreen> {
-  final User? user = FirebaseAuth.instance.currentUser;
+  final AuthService _authService = AuthService();
+  final ImagePicker _picker = ImagePicker();
   File? _imageFile;
   bool _isUploading = false;
 
-  Future<void> _pickImage() async {
+  Future<void> _pickAndUploadImage() async {
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    try {
+      setState(() => _isUploading = true);
+      final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile == null) return;
 
-    if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
       });
-      await _uploadProfilePicture();
-    }
-  }
 
-  Future<void> _uploadProfilePicture() async {
-    if (_imageFile == null || user == null) return;
-
-    setState(() => _isUploading = true);
-    try {
-      // Upload to Firebase Storage
       final storageRef = FirebaseStorage.instance
           .ref()
-          .child('profile_pictures/${user!.uid}.jpg');
+          .child('profile_pictures/${user.uid}.jpg');
       await storageRef.putFile(_imageFile!);
       final downloadUrl = await storageRef.getDownloadURL();
 
-      // Update Firestore
-      await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
-        'email': user!.email,
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
         'photoUrl': downloadUrl,
-      }, SetOptions(merge: true));
+      });
 
-      // Clear local image file to force UI to use Firestore URL
-      setState(() => _imageFile = null);
+      setState(() => _imageFile = null); // Clear local image to use Firestore URL
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile picture updated successfully!'),
-            backgroundColor: AppColors.mediumBlue,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile picture updated successfully'),
+          backgroundColor: AppColors.mediumBlue,
+        ),
+      );
     } catch (e) {
-      print('Upload Error: $e'); // Log for debugging
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error uploading picture: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading picture: $e'), backgroundColor: Colors.redAccent),
+      );
     } finally {
-      if (mounted) setState(() => _isUploading = false);
+      setState(() => _isUploading = false);
     }
+  }
+
+  Future<void> _editProfile(UserModel userData) async {
+    final TextEditingController nameController = TextEditingController(text: userData.name);
+    final TextEditingController emailController = TextEditingController(text: userData.email);
+    final TextEditingController addressController = TextEditingController(text: userData.address);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Edit Profile', style: TextStyle(color: AppColors.darkBlue)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  labelStyle: TextStyle(color: AppColors.mediumBlue),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  labelStyle: TextStyle(color: AppColors.mediumBlue),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: addressController,
+                decoration: InputDecoration(
+                  labelText: 'Address',
+                  labelStyle: TextStyle(color: AppColors.mediumBlue),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.mediumBlue)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) return;
+
+                // Update email in Firebase Auth if changed
+                if (emailController.text != userData.email) {
+                  await user.updateEmail(emailController.text);
+                }
+
+                // Update Firestore
+                await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                  'name': nameController.text,
+                  'email': emailController.text,
+                  'address': addressController.text,
+                });
+
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Profile updated successfully'),
+                    backgroundColor: AppColors.mediumBlue,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error updating profile: $e'), backgroundColor: Colors.redAccent),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.darkBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _signOut(BuildContext context) async {
     try {
       await FirebaseAuth.instance.signOut();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
+      Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error signing out: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error signing out: $e'), backgroundColor: Colors.redAccent),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     if (user == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacementNamed(context, '/login');
@@ -115,140 +185,196 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.darkBlue,
         title: const Text('Seller Profile', style: TextStyle(color: Colors.white)),
-        elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Profile Header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20.0),
-              decoration: BoxDecoration(
-                color: AppColors.darkBlue,
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
-              ),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: _isUploading ? null : _pickImage,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        StreamBuilder<DocumentSnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(user!.uid)
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            String? photoUrl;
-                            if (snapshot.hasData && snapshot.data!.exists) {
-                              photoUrl = snapshot.data!['photoUrl'] as String?;
-                            }
+      body: StreamBuilder<UserModel?>(
+        stream: _authService.currentUser,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: AppColors.darkBlue));
+          }
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+            return const Center(
+              child: Text('Error loading profile.', style: TextStyle(color: AppColors.darkBlue)),
+            );
+          }
 
-                            return CircleAvatar(
+          final userData = snapshot.data!;
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header Section
+                Container(
+                  padding: const EdgeInsets.all(20.0),
+                  decoration: BoxDecoration(
+                    color: AppColors.darkBlue,
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+                  ),
+                  child: Column(
+                    children: [
+                      GestureDetector(
+                        onTap: _isUploading ? null : _pickAndUploadImage,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CircleAvatar(
                               radius: 60,
                               backgroundColor: AppColors.lightBlue,
                               backgroundImage: _imageFile != null
                                   ? FileImage(_imageFile!)
-                                  : photoUrl != null
-                                      ? NetworkImage(photoUrl)
+                                  : userData.photoUrl != null
+                                      ? NetworkImage(userData.photoUrl!)
                                       : null,
-                              child: _imageFile == null && photoUrl == null
-                                  ? const Icon(
-                                      Icons.person,
-                                      size: 60,
-                                      color: Colors.white,
-                                    )
+                              child: userData.photoUrl == null && _imageFile == null
+                                  ? const Icon(Icons.person, size: 60, color: Colors.white)
                                   : null,
-                            );
-                          },
+                            ),
+                            if (_isUploading)
+                              const CircularProgressIndicator(color: Colors.white),
+                          ],
                         ),
-                        if (_isUploading)
-                          const CircularProgressIndicator(color: Colors.white),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  StreamBuilder<DocumentSnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(user!.uid)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      String? name;
-                      if (snapshot.hasData && snapshot.data!.exists) {
-                        name = snapshot.data!['name'] as String?;
-                      }
-                      return Text(
-                        name ?? user!.email ?? 'Seller',
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        userData.name,
                         style: const TextStyle(
-                          fontSize: 24,
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: _isUploading ? null : _pickImage,
-                    icon: const Icon(Icons.camera_alt, color: AppColors.darkBlue),
-                    label: const Text('Change Picture'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppColors.darkBlue,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Profile Details
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Account Details',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.darkBlue,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: ListTile(
-                      leading: const Icon(Icons.email, color: AppColors.mediumBlue),
-                      title: const Text('Email', style: TextStyle(color: AppColors.darkBlue)),
-                      subtitle: Text(user!.email ?? 'N/A', style: const TextStyle(color: Colors.grey)),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  Center(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _signOut(context),
-                      icon: const Icon(Icons.logout, color: Colors.white),
-                      label: const Text('Sign Out'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.darkBlue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 40),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                    ),
+                     
+                    ],
                   ),
-                ],
-              ),
+                ),
+                // Profile Details Section
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Personal Details',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.darkBlue,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.person, color: AppColors.mediumBlue),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Name', style: TextStyle(color: AppColors.darkBlue)),
+                                        Text(
+                                          userData.name,
+                                          style: const TextStyle(color: Colors.grey),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Divider(height: 24),
+                              Row(
+                                children: [
+                                  const Icon(Icons.email, color: AppColors.mediumBlue),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Email', style: TextStyle(color: AppColors.darkBlue)),
+                                        Text(
+                                          userData.email,
+                                          style: const TextStyle(color: Colors.grey),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Divider(height: 24),
+                              Row(
+                                children: [
+                                  const Icon(Icons.location_on, color: AppColors.mediumBlue),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Address', style: TextStyle(color: AppColors.darkBlue)),
+                                        Text(
+                                          userData.address.isNotEmpty ? userData.address : 'Not set',
+                                          style: const TextStyle(color: Colors.grey),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Edit Profile Button
+                      ElevatedButton.icon(
+                        onPressed: () => _editProfile(userData),
+                        icon: const Icon(Icons.edit, color: Colors.white),
+                        label: const Text('Edit Profile'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.mediumBlue,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 50),
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Sign Out Button
+                      ElevatedButton.icon(
+                        onPressed: () => _signOut(context),
+                        icon: const Icon(Icons.logout, color: Colors.white),
+                        label: const Text('Sign Out'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 50),
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
+  }
+}
+
+// Extension to capitalize strings
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1)}";
   }
 }

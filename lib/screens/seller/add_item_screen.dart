@@ -121,12 +121,16 @@ class _AddItemScreenState extends State<AddItemScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
+        
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
             child: Column(
+              
               crossAxisAlignment: CrossAxisAlignment.start,
+              
               children: [
+                const SizedBox(height: 40),
                 // Item Name
                 TextFormField(
                   controller: _nameController,
@@ -234,6 +238,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.mediumBlue,
                           foregroundColor: Colors.white,
+                                                    minimumSize: const Size(double.infinity, 50),
+
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -267,6 +273,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
         ),
       ),
     );
+    
   }
 
   @override
